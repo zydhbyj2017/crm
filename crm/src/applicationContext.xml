@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns="http://www.springframework.org/schema/beans" 
+		xmlns:context="http://www.springframework.org/schema/context"
+		xmlns:aop="http://www.springframework.org/schema/aop" 
+		xmlns:tx="http://www.springframework.org/schema/tx"
+		xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.2.xsd 
+							http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-4.2.xsd 
+							http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.2.xsd 
+							http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.2.xsd ">
+	
+    <!-- 先配置C3P0的连接池 -->
+	<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+		<property name="driverClass" value="com.mysql.jdbc.Driver"/>
+		<property name="jdbcUrl" value="jdbc:mysql:///crm"/>
+		<property name="user" value="root"/>
+		<property name="password" value="123456"/>
+	</bean>
+	
+	<!-- LocalSessionFactoryBean加载配置文件 -->
+	<bean id="sessionFactory" class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+		<!-- 先加载连接池 -->
+		<property name="dataSource" ref="dataSource"/>
+		<!-- 加载方言，加载可选 -->
+		<property name="hibernateProperties">
+			<props>
+				<prop key="hibernate.dialect">org.hibernate.dialect.MySQLDialect</prop>
+				<prop key="hibernate.show_sql">true</prop>
+				<prop key="hibernate.format_sql">true</prop>
+				<prop key="hibernate.hbm2ddl.auto">update</prop>
+			</props>
+		</property>
+		<!--  
+		<property name="mappingResources">
+			<list>
+				<value>com/tt/domain/Customer.hbm.xml</value>
+				<value>com/tt/domain/LinkMan.hbm.xml</value>
+				<value>com/tt/domain/User.hbm.xml</value>
+				<value>com/tt/domain/BaseDict.hbm.xml</value>
+				<value>com/tt/domain/SaleVisit.hbm.xml</value>
+				
+			</list>
+		</property>
+		-->
+		<property name="mappingDirectoryLocations" value="classpath:com/tt/domain" ></property>
+
+	</bean>
+
+	<!-- 先配置平台事务管理器 -->
+	<bean id="transactionManager" class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+		<property name="sessionFactory" ref="sessionFactory"/>
+	</bean>
+	
+	<!-- 配置通知 -->
+	 <tx:advice id="txAdvice" transaction-manager="transactionManager" >
+		<tx:attributes>
+			<tx:method name="save*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="persist*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="update*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="modify*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="delete*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="remove*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+			<tx:method name="get*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="true" />
+			<tx:method name="find*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="true" />
+			<tx:method name="*" isolation="REPEATABLE_READ" propagation="REQUIRED" read-only="false" />
+		</tx:attributes>
+	</tx:advice> 
+	 <aop:config>
+		<aop:pointcut expression="execution(* com.tt.service.*ServiceImpl.*(..))" id="txPc"/>
+		<aop:advisor advice-ref="txAdvice" pointcut-ref="txPc" />
+	</aop:config>
+
+	
+<!-- action -->
+	<!-- Action对象作用范围是多例的-->
+	<bean name="userAction" class="com.tt.web.action.UserAction" scope="prototype" >
+		<property name="userService" ref="userService" ></property>
+	</bean>
+	<bean name="customerAction" class="com.tt.web.action.CustomerAction" scope="prototype" >
+		<property name="cs" ref="customerService" ></property>
+	</bean>
+	<bean name="baseDictAction" class="com.tt.web.action.BaseDictAction" scope="prototype" >
+		<property name="baseDictService" ref="baseDictService" ></property>
+	</bean>
+	<bean name="linkManAction" class="com.tt.web.action.LinkManAction" scope="prototype" >
+		<property name="lms" ref="linkManService" ></property>
+	</bean>
+	<bean name="saleVisitAction" class="com.tt.web.action.SaleVisitAction" scope="prototype" >
+		<property name="svs" ref="saleVisitService" ></property>
+	</bean>
+	
+	<!-- service -->
+	<bean name="userService" class="com.tt.service.UserServiceImpl" >
+		<property name="ud" ref="userDao" ></property>
+	</bean>
+	<bean name="customerService" class="com.tt.service.CustomerServiceImpl" >
+		<property name="cd" ref="customerDao" ></property>
+	</bean>
+	<bean name="baseDictService" class="com.tt.service.BaseDictServiceImpl" >
+		<property name="bdd" ref="baseDictDao" ></property>
+	</bean>
+	<bean name="linkManService" class="com.tt.service.LinkManServiceImpl" >
+		<property name="lmd" ref="linkManDao" ></property>
+	</bean>
+	<bean name="saleVisitService" class="com.tt.service.SaleVisitServiceImpl" >
+		<property name="svd" ref="saleVisitDao" ></property>
+	</bean>
+	
+	<!-- dao -->
+	<bean name="userDao" class="com.tt.dao.UserDaoImpl" >
+		<property name="sessionFactory" ref="sessionFactory" ></property>
+	</bean>
+	<bean name="customerDao" class="com.tt.dao.CustomerDaoImpl" >
+		<property name="sessionFactory" ref="sessionFactory" ></property>
+	</bean>
+	<bean name="baseDictDao" class="com.tt.dao.BaseDictDaoImpl" >
+		<property name="sessionFactory" ref="sessionFactory" ></property>
+	</bean>
+	<bean name="linkManDao" class="com.tt.dao.LinkManDaoImpl" >
+		<property name="sessionFactory" ref="sessionFactory" ></property>
+	</bean>
+	<bean name="saleVisitDao" class="com.tt.dao.SaleVisitDaoImpl" >
+		<property name="sessionFactory" ref="sessionFactory" ></property>
+	</bean>
+
+	
+</beans>
+
+
+
+
+
+
+
+
+
+
+
+
